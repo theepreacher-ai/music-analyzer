@@ -1,4 +1,4 @@
-# Music Analyzer
+
 # 🎵 AI Music Analyzer
 
 A fully client-side music analysis tool that runs entirely in your browser. No backend, no servers, no API keys required.
