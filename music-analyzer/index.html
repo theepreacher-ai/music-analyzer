@@ -1,2 +1,215 @@
 <!DOCTYPE html>
-<html><head><title>Music Analyzer</title></head><body></body></html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Music Analyzer | Studio-Grade Analysis</title>
+    <meta name="description" content="Analyze music files in your browser. Vocal separation, chord detection, instrument recognition - all client-side.">
+    <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="assets/css/musical-theme.css">
+</head>
+<body>
+    <!-- Hero Section -->
+    <section id="hero">
+        <canvas id="heroWaveform"></canvas>
+        <div class="hero-content">
+            <h1 class="studio-title">AI Music Analyzer</h1>
+            <p class="studio-subtitle">Studio-Grade Analysis in Your Browser</p>
+            <div class="features-badges">
+                <span class="badge">Vocal Separation</span>
+                <span class="badge">Chord Detection</span>
+                <span class="badge">Instrument ID</span>
+                <span class="badge">100% Client-Side</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- Upload Section -->
+    <section id="upload" class="section">
+        <div class="container">
+            <h2 class="section-title">Load Your Music</h2>
+            
+            <!-- File Upload -->
+            <div id="dropzone" class="dropzone">
+                <div class="dropzone-content">
+                    <svg class="upload-icon" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="17 8 12 3 7 8"></polyline>
+                        <line x1="12" y1="3" x2="12" y2="15"></line>
+                    </svg>
+                    <p class="dropzone-text">Drag & Drop or Click to Upload</p>
+                    <p class="dropzone-formats">MP3, WAV, FLAC, MP4</p>
+                </div>
+                <input type="file" id="fileInput" accept="audio/*,video/mp4" hidden>
+            </div>
+
+            <!-- YouTube Input -->
+            <div class="youtube-input-container">
+                <div class="divider">
+                    <span>OR</span>
+                </div>
+                <div class="input-group">
+                    <input type="text" id="youtubeUrl" placeholder="Paste YouTube URL (https://youtube.com/watch?v=...)" class="youtube-input">
+                    <button id="loadYoutube" class="btn btn-primary">Load YouTube</button>
+                </div>
+                <p class="input-note">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="12" y1="16" x2="12" y2="12"></line>
+                        <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                    </svg>
+                    Analysis occurs during playback. No downloads. See <a href="docs/legal-notice.md" target="_blank">legal notice</a>.
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Analysis Progress -->
+    <section id="analysis" class="section hidden">
+        <div class="container">
+            <h2 class="section-title">Analysis in Progress</h2>
+            <div class="progress-container">
+                <div class="progress-step" data-step="load">
+                    <div class="step-indicator"></div>
+                    <div class="step-content">
+                        <h3>Loading Audio</h3>
+                        <p class="step-status">Decoding audio buffer...</p>
+                    </div>
+                </div>
+                <div class="progress-step" data-step="separate">
+                    <div class="step-indicator"></div>
+                    <div class="step-content">
+                        <h3>Separating Vocals</h3>
+                        <p class="step-status">Extracting instrumental track...</p>
+                    </div>
+                </div>
+                <div class="progress-step" data-step="detect">
+                    <div class="step-indicator"></div>
+                    <div class="step-content">
+                        <h3>Detecting Instruments</h3>
+                        <p class="step-status">Analyzing frequency spectrum...</p>
+                    </div>
+                </div>
+                <div class="progress-step" data-step="chords">
+                    <div class="step-indicator"></div>
+                    <div class="step-content">
+                        <h3>Analyzing Chords</h3>
+                        <p class="step-status">Building chord timeline...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- YouTube Player (Hidden until loaded) -->
+    <section id="youtubePlayer" class="section hidden">
+        <div class="container">
+            <div id="youtubeEmbed"></div>
+        </div>
+    </section>
+
+    <!-- Results Section -->
+    <section id="results" class="section hidden">
+        <div class="container">
+            <h2 class="section-title">Analysis Results</h2>
+            
+            <!-- Song Info -->
+            <div class="song-info-card">
+                <h3 id="songTitle">Song Title</h3>
+                <div class="song-meta">
+                    <span class="meta-item">
+                        <strong>BPM:</strong> <span id="songBpm">--</span>
+                    </span>
+                    <span class="meta-item">
+                        <strong>Key:</strong> <span id="songKey">--</span>
+                    </span>
+                    <span class="meta-item">
+                        <strong>Duration:</strong> <span id="songDuration">--</span>
+                    </span>
+                </div>
+                <div class="instruments-detected">
+                    <strong>Instruments:</strong>
+                    <div id="instrumentsList"></div>
+                </div>
+            </div>
+
+            <!-- Audio Player -->
+            <div class="player-card">
+                <h3>Instrumental Track</h3>
+                <div class="player-controls">
+                    <button id="playPause" class="btn-icon">
+                        <svg class="play-icon" width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                            <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                        </svg>
+                        <svg class="pause-icon hidden" width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                            <rect x="6" y="4" width="4" height="16"></rect>
+                            <rect x="14" y="4" width="4" height="16"></rect>
+                        </svg>
+                    </button>
+                    <div class="player-timeline">
+                        <canvas id="waveformCanvas"></canvas>
+                        <div id="playhead"></div>
+                    </div>
+                    <div class="time-display">
+                        <span id="currentTime">0:00</span>
+                        <span id="totalTime">0:00</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Chord Timeline -->
+            <div class="chord-timeline-card">
+                <h3>Chord Progression</h3>
+                <div class="timeline-controls">
+                    <button id="filterGuitar" class="filter-btn active" data-instrument="guitar">Guitar</button>
+                    <button id="filterPiano" class="filter-btn active" data-instrument="piano">Piano</button>
+                    <button id="filterAll" class="filter-btn active">All</button>
+                </div>
+                <div class="timeline-container">
+                    <canvas id="chordTimeline"></canvas>
+                </div>
+                <div id="chordList" class="chord-list"></div>
+            </div>
+
+            <!-- Export -->
+            <div class="export-card">
+                <h3>Export Analysis</h3>
+                <div class="export-buttons">
+                    <button id="downloadInstrumental" class="btn btn-primary">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="7 10 12 15 17 10"></polyline>
+                            <line x1="12" y1="15" x2="12" y2="3"></line>
+                        </svg>
+                        Download Instrumental (WAV)
+                    </button>
+                    <button id="downloadJson" class="btn btn-secondary">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                            <polyline points="14 2 14 8 20 8"></polyline>
+                            <line x1="12" y1="18" x2="12" y2="12"></line>
+                            <line x1="9" y1="15" x2="15" y2="15"></line>
+                        </svg>
+                        Download Analysis (JSON)
+                    </button>
+                </div>
+                <p class="export-note">Files will be saved to your downloads folder</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <p>AI Music Analyzer | 100% Client-Side Processing</p>
+            <p class="footer-links">
+                <a href="docs/how-it-works.md">How It Works</a> |
+                <a href="docs/limitations.md">Limitations</a> |
+                <a href="docs/legal-notice.md">Legal Notice</a>
+            </p>
+        </div>
+    </footer>
+
+    <script type="module" src="assets/js/app.js"></script>
+</body>
+</html>
