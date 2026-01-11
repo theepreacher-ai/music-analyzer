@@ -1,1 +1,631 @@
-/* Main styles */
+:root {
+    --bg-dark: #0a0a0f;
+    --bg-card: #151520;
+    --bg-hover: #1f1f2e;
+    --primary: #6366f1;
+    --primary-hover: #4f46e5;
+    --secondary: #8b5cf6;
+    --accent: #ec4899;
+    --text: #e5e7eb;
+    --text-muted: #9ca3af;
+    --border: #2d2d3d;
+    --success: #10b981;
+    --warning: #f59e0b;
+    --error: #ef4444;
+    --waveform: #6366f1;
+    --shadow: rgba(0, 0, 0, 0.5);
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    background: var(--bg-dark);
+    color: var(--text);
+    line-height: 1.6;
+    overflow-x: hidden;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 2rem;
+}
+
+.section {
+    padding: 4rem 0;
+    min-height: 50vh;
+}
+
+.section.hidden {
+    display: none;
+}
+
+.section-title {
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin-bottom: 2rem;
+    text-align: center;
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+/* Hero Section */
+#hero {
+    position: relative;
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+#heroWaveform {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0.3;
+}
+
+.hero-content {
+    position: relative;
+    z-index: 10;
+    text-align: center;
+}
+
+.studio-title {
+    font-size: 4rem;
+    font-weight: 900;
+    margin-bottom: 1rem;
+    background: linear-gradient(135deg, #6366f1, #8b5cf6, #ec4899);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    text-shadow: 0 0 40px rgba(99, 102, 241, 0.5);
+}
+
+.studio-subtitle {
+    font-size: 1.5rem;
+    color: var(--text-muted);
+    margin-bottom: 2rem;
+}
+
+.features-badges {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.badge {
+    padding: 0.5rem 1rem;
+    background: rgba(99, 102, 241, 0.1);
+    border: 1px solid var(--primary);
+    border-radius: 2rem;
+    font-size: 0.9rem;
+    color: var(--primary);
+}
+
+/* Upload Section */
+.dropzone {
+    border: 2px dashed var(--border);
+    border-radius: 1rem;
+    padding: 4rem 2rem;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    background: var(--bg-card);
+}
+
+.dropzone:hover,
+.dropzone.drag-over {
+    border-color: var(--primary);
+    background: rgba(99, 102, 241, 0.05);
+}
+
+.dropzone-content {
+    pointer-events: none;
+}
+
+.upload-icon {
+    color: var(--primary);
+    margin-bottom: 1rem;
+}
+
+.dropzone-text {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+
+.dropzone-formats {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+}
+
+/* YouTube Input */
+.youtube-input-container {
+    margin-top: 2rem;
+}
+
+.divider {
+    text-align: center;
+    margin: 2rem 0;
+    position: relative;
+}
+
+.divider::before,
+.divider::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    width: 45%;
+    height: 1px;
+    background: var(--border);
+}
+
+.divider::before {
+    left: 0;
+}
+
+.divider::after {
+    right: 0;
+}
+
+.divider span {
+    background: var(--bg-dark);
+    padding: 0 1rem;
+    color: var(--text-muted);
+}
+
+.input-group {
+    display: flex;
+    gap: 1rem;
+}
+
+.youtube-input {
+    flex: 1;
+    padding: 0.75rem 1rem;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 0.5rem;
+    color: var(--text);
+    font-size: 1rem;
+    transition: all 0.3s ease;
+}
+
+.youtube-input:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+.input-note {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.75rem;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+}
+
+.input-note svg {
+    flex-shrink: 0;
+}
+
+.input-note a {
+    color: var(--primary);
+    text-decoration: none;
+}
+
+.input-note a:hover {
+    text-decoration: underline;
+}
+
+/* Buttons */
+.btn {
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 0.5rem;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.btn-primary {
+    background: var(--primary);
+    color: white;
+}
+
+.btn-primary:hover {
+    background: var(--primary-hover);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+}
+
+.btn-secondary {
+    background: var(--bg-card);
+    color: var(--text);
+    border: 1px solid var(--border);
+}
+
+.btn-secondary:hover {
+    background: var(--bg-hover);
+    border-color: var(--primary);
+}
+
+.btn-icon {
+    background: var(--primary);
+    border: none;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    color: white;
+}
+
+.btn-icon:hover {
+    background: var(--primary-hover);
+    transform: scale(1.1);
+}
+
+/* Progress Steps */
+.progress-container {
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.progress-step {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 2rem;
+    opacity: 0.5;
+    transition: opacity 0.3s ease;
+}
+
+.progress-step.active {
+    opacity: 1;
+}
+
+.progress-step.complete {
+    opacity: 0.7;
+}
+
+.step-indicator {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: var(--bg-card);
+    border: 2px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    position: relative;
+}
+
+.progress-step.active .step-indicator {
+    border-color: var(--primary);
+    background: rgba(99, 102, 241, 0.1);
+}
+
+.progress-step.active .step-indicator::after {
+    content: '';
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--primary);
+    animation: pulse 1.5s ease-in-out infinite;
+}
+
+.progress-step.complete .step-indicator {
+    border-color: var(--success);
+    background: var(--success);
+}
+
+.progress-step.complete .step-indicator::after {
+    content: '✓';
+    color: white;
+    font-weight: bold;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+    50% {
+        transform: scale(1.2);
+        opacity: 0.7;
+    }
+}
+
+.step-content h3 {
+    margin-bottom: 0.25rem;
+}
+
+.step-status {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+}
+
+/* Cards */
+.song-info-card,
+.player-card,
+.chord-timeline-card,
+.export-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 1rem;
+    padding: 2rem;
+    margin-bottom: 2rem;
+}
+
+.song-info-card h3 {
+    font-size: 1.75rem;
+    margin-bottom: 1rem;
+}
+
+.song-meta {
+    display: flex;
+    gap: 2rem;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+}
+
+.meta-item {
+    color: var(--text-muted);
+}
+
+.meta-item strong {
+    color: var(--text);
+}
+
+.instruments-detected {
+    margin-top: 1rem;
+}
+
+#instrumentsList {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+    flex-wrap: wrap;
+}
+
+#instrumentsList .badge {
+    background: rgba(139, 92, 246, 0.1);
+    border-color: var(--secondary);
+    color: var(--secondary);
+}
+
+/* Player */
+.player-controls {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+}
+
+.player-timeline {
+    flex: 1;
+    position: relative;
+    height: 80px;
+}
+
+#waveformCanvas {
+    width: 100%;
+    height: 100%;
+    border-radius: 0.5rem;
+}
+
+#playhead {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 2px;
+    height: 100%;
+    background: var(--accent);
+    pointer-events: none;
+}
+
+.time-display {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    font-variant-numeric: tabular-nums;
+    color: var(--text-muted);
+    font-size: 0.9rem;
+}
+
+/* Chord Timeline */
+.timeline-controls {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.filter-btn {
+    padding: 0.5rem 1rem;
+    background: var(--bg-dark);
+    border: 1px solid var(--border);
+    border-radius: 0.5rem;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.filter-btn.active {
+    background: var(--primary);
+    color: white;
+    border-color: var(--primary);
+}
+
+.timeline-container {
+    margin-bottom: 1rem;
+}
+
+#chordTimeline {
+    width: 100%;
+    height: 200px;
+    border-radius: 0.5rem;
+}
+
+.chord-list {
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.chord-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.75rem;
+    background: var(--bg-dark);
+    border-radius: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.chord-item:hover {
+    background: var(--bg-hover);
+}
+
+.chord-name {
+    font-weight: 600;
+}
+
+.chord-time {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+}
+
+.chord-instrument {
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+}
+
+.chord-instrument.guitar {
+    background: rgba(236, 72, 153, 0.1);
+    color: var(--accent);
+}
+
+.chord-instrument.piano {
+    background: rgba(139, 92, 246, 0.1);
+    color: var(--secondary);
+}
+
+/* Export */
+.export-buttons {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.export-note {
+    margin-top: 1rem;
+    color: var(--text-muted);
+    font-size: 0.9rem;
+}
+
+/* Footer */
+.footer {
+    background: var(--bg-card);
+    border-top: 1px solid var(--border);
+    padding: 2rem 0;
+    text-align: center;
+    color: var(--text-muted);
+}
+
+.footer-links {
+    margin-top: 0.5rem;
+}
+
+.footer-links a {
+    color: var(--primary);
+    text-decoration: none;
+    margin: 0 0.5rem;
+}
+
+.footer-links a:hover {
+    text-decoration: underline;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .studio-title {
+        font-size: 2.5rem;
+    }
+    
+    .features-badges {
+        font-size: 0.8rem;
+    }
+  .input-group {
+        flex-direction: column;
+    }
+    
+    .song-meta {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    
+    .player-controls {
+        flex-direction: column;
+    }
+    
+    .export-buttons {
+        flex-direction: column;
+    }
+    
+    .btn {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+/* Utility Classes */
+.hidden {
+    display: none !important;
+}
+
+.text-center {
+    text-align: center;
+}
+
+.mb-1 {
+    margin-bottom: 0.5rem;
+}
+
+.mb-2 {
+    margin-bottom: 1rem;
+}
+
+.mb-3 {
+    margin-bottom: 1.5rem;
+}
+
+.mt-1 {
+    margin-top: 0.5rem;
+}
+
+.mt-2 {
+    margin-top: 1rem;
+}
+
+.mt-3 {
+    margin-top: 1.5rem;
+}
