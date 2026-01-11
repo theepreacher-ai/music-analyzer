@@ -1,1 +1,371 @@
-/* Musical theme styles */
+/* Musical Theme Enhancements */
+
+/* Animated gradient background */
+body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(circle at 20% 50%, rgba(99, 102, 241, 0.05) 0%, transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(139, 92, 246, 0.05) 0%, transparent 50%),
+                radial-gradient(circle at 40% 20%, rgba(236, 72, 153, 0.05) 0%, transparent 50%);
+    pointer-events: none;
+    z-index: 0;
+}
+
+/* BPM-synced animations */
+@keyframes bpmPulse {
+    0%, 100% {
+        transform: scale(1);
+        opacity: 0.8;
+    }
+    50% {
+        transform: scale(1.05);
+        opacity: 1;
+    }
+}
+
+.bpm-sync {
+    animation: bpmPulse var(--bpm-duration, 1s) ease-in-out infinite;
+}
+
+/* Frequency bars animation */
+@keyframes frequencyBar {
+    0%, 100% {
+        height: 20%;
+    }
+    50% {
+        height: 80%;
+    }
+}
+
+.frequency-bar {
+    animation: frequencyBar 0.5s ease-in-out infinite;
+    animation-delay: calc(var(--bar-index) * 0.05s);
+}
+
+/* Waveform glow effect */
+.waveform-glow {
+    filter: drop-shadow(0 0 8px var(--waveform));
+}
+
+/* Vinyl record rotation */
+@keyframes vinylRotate {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.vinyl-spin {
+    animation: vinylRotate 2s linear infinite;
+}
+
+/* Studio LED indicators */
+.led-indicator {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--text-muted);
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.1);
+    transition: all 0.3s ease;
+}
+
+.led-indicator.active {
+    background: var(--success);
+    box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.3),
+                0 0 12px rgba(16, 185, 129, 0.6);
+    animation: ledPulse 1s ease-in-out infinite;
+}
+
+@keyframes ledPulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.5;
+    }
+}
+
+/* Audio meter bars */
+.audio-meter {
+    display: flex;
+    gap: 2px;
+    height: 40px;
+    align-items: flex-end;
+}
+
+.meter-bar {
+    flex: 1;
+    background: linear-gradient(to top, var(--success), var(--warning), var(--error));
+    border-radius: 2px;
+    min-width: 4px;
+    transition: height 0.1s ease;
+}
+
+/* Chord badge with instrument color */
+.chord-badge {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    border-radius: 1rem;
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+.chord-badge.guitar {
+    background: linear-gradient(135deg, rgba(236, 72, 153, 0.2), rgba(236, 72, 153, 0.1));
+    border: 1px solid rgba(236, 72, 153, 0.3);
+    color: var(--accent);
+}
+
+.chord-badge.piano {
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(139, 92, 246, 0.1));
+    border: 1px solid rgba(139, 92, 246, 0.3);
+    color: var(--secondary);
+}
+
+/* Timeline scrubber */
+.timeline-scrubber {
+    position: absolute;
+    top: 0;
+    width: 2px;
+    height: 100%;
+    background: var(--accent);
+    cursor: pointer;
+    transition: width 0.2s ease;
+}
+
+.timeline-scrubber:hover {
+    width: 4px;
+}
+
+.timeline-scrubber::before {
+    content: '';
+    position: absolute;
+    top: -8px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 16px;
+    height: 16px;
+    background: var(--accent);
+    border-radius: 50%;
+    box-shadow: 0 0 8px var(--accent);
+}
+
+/* Spectrogram styling */
+.spectrogram {
+    background: linear-gradient(to right, 
+        rgba(99, 102, 241, 0.1) 0%,
+        rgba(139, 92, 246, 0.1) 50%,
+        rgba(236, 72, 153, 0.1) 100%);
+    border-radius: 0.5rem;
+    overflow: hidden;
+}
+
+/* Music note decorations */
+.note-decoration {
+    position: absolute;
+    font-size: 2rem;
+    opacity: 0.1;
+    pointer-events: none;
+    animation: floatNote 10s ease-in-out infinite;
+}
+
+@keyframes floatNote {
+    0%, 100% {
+        transform: translateY(0) rotate(0deg);
+    }
+    50% {
+        transform: translateY(-20px) rotate(5deg);
+    }
+}
+
+/* Studio knob control */
+.knob-control {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--bg-hover), var(--bg-card));
+    border: 2px solid var(--border);
+    position: relative;
+    cursor: pointer;
+    box-shadow: inset 0 2px 4px var(--shadow);
+}
+
+.knob-control::after {
+    content: '';
+    position: absolute;
+    top: 5px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 3px;
+    height: 20px;
+    background: var(--primary);
+    border-radius: 2px;
+}
+
+/* VU meter styling */
+.vu-meter {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.vu-meter-bar {
+    height: 4px;
+    background: var(--bg-hover);
+    border-radius: 2px;
+    position: relative;
+    overflow: hidden;
+}
+
+.vu-meter-fill {
+    height: 100%;
+    background: linear-gradient(to right, var(--success), var(--warning), var(--error));
+    transition: width 0.1s ease;
+}
+
+/* Equalizer visualization */
+.equalizer {
+    display: flex;
+    gap: 4px;
+    height: 60px;
+    align-items: flex-end;
+    justify-content: center;
+}
+
+.eq-bar {
+    width: 6px;
+    background: linear-gradient(to top, var(--primary), var(--secondary));
+    border-radius: 3px 3px 0 0;
+    animation: eqBounce 0.5s ease-in-out infinite;
+}
+
+.eq-bar:nth-child(1) { animation-delay: 0s; }
+.eq-bar:nth-child(2) { animation-delay: 0.1s; }
+.eq-bar:nth-child(3) { animation-delay: 0.2s; }
+.eq-bar:nth-child(4) { animation-delay: 0.3s; }
+.eq-bar:nth-child(5) { animation-delay: 0.4s; }
+
+@keyframes eqBounce {
+    0%, 100% {
+        height: 20%;
+    }
+    50% {
+        height: 90%;
+    }
+}
+
+/* Piano key styling */
+.piano-key {
+    display: inline-block;
+    width: 40px;
+    height: 120px;
+    background: linear-gradient(to bottom, #ffffff, #e5e7eb);
+    border: 1px solid var(--border);
+    border-radius: 0 0 4px 4px;
+    box-shadow: 0 2px 4px var(--shadow);
+    cursor: pointer;
+    transition: all 0.1s ease;
+}
+
+.piano-key:active,
+.piano-key.active {
+    background: linear-gradient(to bottom, #e5e7eb, #d1d5db);
+    transform: translateY(2px);
+    box-shadow: 0 1px 2px var(--shadow);
+}
+
+.piano-key.black {
+    width: 30px;
+    height: 80px;
+    background: linear-gradient(to bottom, #1f2937, #111827);
+    margin: 0 -15px;
+    z-index: 1;
+    position: relative;
+}
+
+/* Guitar string visualization */
+.guitar-string {
+    height: 2px;
+    background: linear-gradient(to right, var(--text-muted), var(--text));
+    position: relative;
+    margin: 8px 0;
+}
+
+.guitar-string.vibrate {
+    animation: stringVibrate 0.3s ease-in-out;
+}
+
+@keyframes stringVibrate {
+    0%, 100% {
+        transform: translateY(0);
+    }
+    25% {
+        transform: translateY(-2px);
+    }
+    75% {
+        transform: translateY(2px);
+    }
+}
+
+/* Fret marker */
+.fret-marker {
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    background: var(--primary);
+    border-radius: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    box-shadow: 0 0 8px var(--primary);
+}
+
+/* Audio reactive glow */
+.audio-reactive-glow {
+    box-shadow: 0 0 20px rgba(99, 102, 241, 0.3);
+    transition: box-shadow 0.1s ease;
+}
+
+.audio-reactive-glow.active {
+    box-shadow: 0 0 40px rgba(99, 102, 241, 0.8);
+}
+
+/* Cassette tape animation */
+.cassette-reel {
+    width: 30px;
+    height: 30px;
+    border: 2px solid var(--border);
+    border-radius: 50%;
+    position: relative;
+}
+
+.cassette-reel.playing::after {
+    content: '';
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    border: 2px solid var(--primary);
+    border-top-color: transparent;
+    animation: reelSpin 1s linear infinite;
+}
+
+@keyframes reelSpin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Spectrum analyzer grid */
+.spectrum-grid {
+    background-image: 
+        linear-gradient(var(--border) 1px, transparent 1px),
+        linear-gradient(90deg, var(--border) 1px, transparent 1px);
+    background-size: 20px 20px;
+    opacity: 0.3;
+}
