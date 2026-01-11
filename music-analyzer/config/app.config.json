@@ -1,3 +1,72 @@
 {
-  "appName": "Music Analyzer"
+  "app": {
+    "name": "AI Music Analyzer",
+    "version": "1.0.0",
+    "description": "Studio-grade music analysis in your browser"
+  },
+  "audio": {
+    "sampleRate": 44100,
+    "fftSize": 2048,
+    "hopSize": 512,
+    "maxFileSizeMB": 100,
+    "maxDurationMinutes": 10
+  },
+  "analysis": {
+    "vocalSeparation": {
+      "enabled": true,
+      "method": "spectral_subtraction",
+      "vocalFreqMin": 300,
+      "vocalFreqMax": 3000,
+      "attenuation": 0.3
+    },
+    "chordDetection": {
+      "enabled": true,
+      "windowSize": 2.0,
+      "minConfidence": 0.3,
+      "chordTypes": ["major", "minor"]
+    },
+    "instrumentDetection": {
+      "enabled": true,
+      "instruments": ["guitar", "piano"],
+      "confidenceThreshold": 0.6
+    },
+    "tempoDetection": {
+      "enabled": true,
+      "minBPM": 60,
+      "maxBPM": 200
+    }
+  },
+  "export": {
+    "wav": {
+      "sampleRate": 44100,
+      "bitDepth": 16,
+      "channels": 2
+    },
+    "json": {
+      "prettyPrint": true,
+      "indent": 2
+    }
+  },
+  "ui": {
+    "waveform": {
+      "color": "#6366f1",
+      "glowIntensity": 10
+    },
+    "chordTimeline": {
+      "guitarColor": "#ec4899",
+      "pianoColor": "#8b5cf6"
+    },
+    "animation": {
+      "enabled": true,
+      "fps": 60
+    }
+  },
+  "features": {
+    "fileUpload": true,
+    "videoExtraction": true,
+    "youtubeInput": true,
+    "realTimePlayback": true,
+    "exportWAV": true,
+    "exportJSON": true
+  }
 }
