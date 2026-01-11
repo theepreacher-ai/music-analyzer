@@ -1,4 +1,3 @@
-// Vocal separation logic
 export class VocalSeparator {
     constructor(audioContext) {
         this.audioContext = audioContext;
