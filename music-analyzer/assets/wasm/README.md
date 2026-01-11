@@ -1,4 +1,3 @@
-# WASM binaries go here
 # WASM Modules
 
 This directory is reserved for WebAssembly modules that would enhance the audio processing capabilities.
