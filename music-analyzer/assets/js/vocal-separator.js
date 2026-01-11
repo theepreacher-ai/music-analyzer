@@ -1,259 +1,291 @@
 export class VocalSeparator {
-    constructor(audioContext) {
+    constructor(audioContext, options = {}) {
         this.audioContext = audioContext;
-        this.modelLoaded = false;
+        this.apiKey = options.apiKey || null;
+        this.apiEndpoint = options.apiEndpoint || 'https://api.replicate.com/v1/predictions';
+        this.onProgress = options.onProgress || (() => {});
     }
     
-    async loadModel() {
-        // In production: Load pre-trained Demucs or similar model
-        // Using ONNX Runtime Web to run the model in browser
-        // Model URL would point to quantized ONNX model (~50MB)
-        this.modelLoaded = true;
+    async separate(audioBuffer, options = {}) {
+        const service = options.service || 'replicate'; // replicate, lalalai, or spleeter
+        
+        switch(service) {
+            case 'replicate':
+                return await this.separateWithReplicate(audioBuffer, options);
+            case 'lalalai':
+                return await this.separateWithLalal(audioBuffer, options);
+            case 'spleeter':
+                return await this.separateWithSpleeter(audioBuffer, options);
+            default:
+                throw new Error(`Unknown service: ${service}`);
+        }
     }
     
-    async separate(audioBuffer) {
-        // OPTION 1: Use Web API approach (cloud-based, best quality)
-        return await this.separateViaAPI(audioBuffer);
+    async separateWithReplicate(audioBuffer, options = {}) {
+        /**
+         * Uses Replicate API with Demucs model
+         * https://replicate.com/facebookresearch/demucs
+         * Best quality, ~30-60 seconds processing
+         */
         
-        // OPTION 2: Local processing with better algorithms
-        // return await this.separateLocally(audioBuffer);
-    }
-    
-    async separateViaAPI(audioBuffer) {
-        // Convert to WAV blob
-        const wav = this.audioBufferToWav(audioBuffer);
-        const blob = new Blob([wav], { type: 'audio/wav' });
+        if (!this.apiKey) {
+            throw new Error('Replicate API key required. Get one at https://replicate.com');
+        }
         
-        // Call separation API (Spleeter/Demucs as a service)
-        const formData = new FormData();
-        formData.append('audio', blob);
-        formData.append('stems', '2'); // vocals, instrumental
+        this.onProgress({ stage: 'converting', progress: 0 });
         
-        const response = await fetch('https://api.your-service.com/separate', {
+        // Convert audio buffer to WAV file
+        const wavBlob = await this.audioBufferToWavBlob(audioBuffer);
+        
+        this.onProgress({ stage: 'uploading', progress: 10 });
+        
+        // Upload to temporary storage (you'd use your own S3/storage)
+        const audioUrl = await this.uploadToStorage(wavBlob);
+        
+        this.onProgress({ stage: 'processing', progress: 20 });
+        
+        // Create prediction
+        const prediction = await fetch(this.apiEndpoint, {
             method: 'POST',
-            body: formData
+            headers: {
+                'Authorization': `Token ${this.apiKey}`,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                version: 'b76242b40c256551b3e3d78bce0a9ae857bbafa91a74b3f36d5d1e1723f36bb8',
+                input: {
+                    audio: audioUrl,
+                    stem: options.stem || 'vocals', // or 'drums', 'bass', 'other'
+                    split_only: options.splitOnly || false
+                }
+            })
         });
         
-        const result = await response.json();
+        const predictionData = await prediction.json();
         
-        // Download instrumental stem
-        const instrumentalResponse = await fetch(result.instrumental_url);
-        const arrayBuffer = await instrumentalResponse.arrayBuffer();
+        // Poll for completion
+        const result = await this.pollPrediction(predictionData.id, predictionData.urls.get);
         
-        return await this.audioContext.decodeAudioData(arrayBuffer);
-    }
-    
-    async separateLocally(audioBuffer) {
-        // Advanced local processing combining multiple techniques
+        this.onProgress({ stage: 'downloading', progress: 90 });
         
-        const sampleRate = audioBuffer.sampleRate;
-        const length = audioBuffer.length;
-        const numberOfChannels = audioBuffer.numberOfChannels;
+        // Download the instrumental track
+        const instrumentalUrl = result.output.instrumental || result.output;
+        const instrumentalBuffer = await this.downloadAndDecodeAudio(instrumentalUrl);
         
-        const instrumentalBuffer = this.audioContext.createBuffer(
-            numberOfChannels, length, sampleRate
-        );
-        
-        for (let channel = 0; channel < numberOfChannels; channel++) {
-            const inputData = audioBuffer.getChannelData(channel);
-            const outputData = instrumentalBuffer.getChannelData(channel);
-            
-            // Use larger FFT for better frequency resolution
-            const fftSize = 8192; // 4x larger than original
-            const hopSize = fftSize / 4; // 75% overlap for smoother results
-            
-            const numFrames = Math.floor((length - fftSize) / hopSize) + 1;
-            const window = this.getHannWindow(fftSize);
-            
-            // Store magnitude and phase separately for better reconstruction
-            const magnitudes = [];
-            const phases = [];
-            
-            // Analysis phase: Extract all frames
-            for (let frameIdx = 0; frameIdx < numFrames; frameIdx++) {
-                const offset = frameIdx * hopSize;
-                const frame = new Float32Array(fftSize);
-                
-                for (let i = 0; i < fftSize; i++) {
-                    const idx = offset + i;
-                    frame[i] = idx < length ? inputData[idx] * window[i] : 0;
-                }
-                
-                const spectrum = this.analyzeFrame(frame);
-                magnitudes.push(spectrum.magnitude);
-                phases.push(spectrum.phase);
-            }
-            
-            // Processing phase: Advanced filtering
-            for (let frameIdx = 0; frameIdx < numFrames; frameIdx++) {
-                const mag = magnitudes[frameIdx];
-                const binSize = sampleRate / fftSize;
-                
-                for (let bin = 0; bin < fftSize / 2; bin++) {
-                    const freq = bin * binSize;
-                    
-                    // Multi-band adaptive filtering
-                    let attenuation = 1.0;
-                    
-                    // Vocal fundamental range (narrow, aggressive)
-                    if (freq >= 80 && freq <= 300) {
-                        attenuation = 0.6; // Preserve low male vocals area
-                    }
-                    // Primary vocal range (most aggressive)
-                    else if (freq >= 300 && freq <= 3500) {
-                        // Use spectral flux to detect transients (likely instruments)
-                        const flux = this.getSpectralFlux(magnitudes, frameIdx, bin);
-                        
-                        // High flux = likely percussive/instrument, preserve it
-                        // Low flux = likely sustained vocal, attenuate more
-                        const fluxFactor = Math.min(flux * 2, 1.0);
-                        attenuation = 0.15 + (fluxFactor * 0.35);
-                    }
-                    // Vocal harmonics range
-                    else if (freq >= 3500 && freq <= 8000) {
-                        attenuation = 0.5;
-                    }
-                    // Preserve high frequencies (cymbals, breath, etc)
-                    else {
-                        attenuation = 0.85;
-                    }
-                    
-                    // Apply temporal smoothing to reduce artifacts
-                    if (frameIdx > 0) {
-                        const prevMag = magnitudes[frameIdx - 1][bin];
-                        const smoothing = 0.7;
-                        attenuation = attenuation * smoothing + (1 - smoothing) * (prevMag > 0 ? mag[bin] / prevMag : 1);
-                    }
-                    
-                    mag[bin] *= attenuation;
-                }
-            }
-            
-            // Synthesis phase: Reconstruct audio with phase vocoder
-            for (let frameIdx = 0; frameIdx < numFrames; frameIdx++) {
-                const offset = frameIdx * hopSize;
-                const reconstructed = this.synthesizeFrame(
-                    magnitudes[frameIdx],
-                    phases[frameIdx],
-                    fftSize
-                );
-                
-                // Overlap-add with window
-                for (let i = 0; i < fftSize && offset + i < length; i++) {
-                    outputData[offset + i] += reconstructed[i] * window[i];
-                }
-            }
-            
-            // Normalize with soft limiting
-            this.softNormalize(outputData, length);
-        }
-        
-        // Stereo enhancement: Use mid/side processing
-        if (numberOfChannels === 2) {
-            this.enhanceStereo(instrumentalBuffer);
-        }
+        this.onProgress({ stage: 'complete', progress: 100 });
         
         return instrumentalBuffer;
     }
     
-    analyzeFrame(frame) {
-        const n = frame.length;
-        const real = new Float32Array(frame);
-        const imag = new Float32Array(n);
+    async separateWithLalal(audioBuffer, options = {}) {
+        /**
+         * Uses LALAL.AI API
+         * https://www.lalal.ai/api/
+         * Premium quality, paid service
+         */
         
-        this.fft(real, imag);
-        
-        const magnitude = new Float32Array(n / 2);
-        const phase = new Float32Array(n / 2);
-        
-        for (let i = 0; i < n / 2; i++) {
-            magnitude[i] = Math.sqrt(real[i] * real[i] + imag[i] * imag[i]);
-            phase[i] = Math.atan2(imag[i], real[i]);
+        if (!this.apiKey) {
+            throw new Error('LALAL.AI API key required. Get one at https://www.lalal.ai/api/');
         }
         
-        return { magnitude, phase };
-    }
-    
-    synthesizeFrame(magnitude, phase, fftSize) {
-        const real = new Float32Array(fftSize);
-        const imag = new Float32Array(fftSize);
+        this.onProgress({ stage: 'converting', progress: 0 });
         
-        // Reconstruct complex spectrum
-        for (let i = 0; i < fftSize / 2; i++) {
-            real[i] = magnitude[i] * Math.cos(phase[i]);
-            imag[i] = magnitude[i] * Math.sin(phase[i]);
+        const wavBlob = await this.audioBufferToWavBlob(audioBuffer);
+        const formData = new FormData();
+        formData.append('file', wavBlob, 'audio.wav');
+        formData.append('stem', options.stem || 'vocal');
+        formData.append('filter', options.filter || '0'); // 0=mild, 1=normal, 2=aggressive
+        
+        this.onProgress({ stage: 'uploading', progress: 10 });
+        
+        // Upload file
+        const uploadResponse = await fetch('https://www.lalal.ai/api/upload/', {
+            method: 'POST',
+            headers: {
+                'Authorization': `license ${this.apiKey}`
+            },
+            body: formData
+        });
+        
+        const uploadData = await uploadResponse.json();
+        
+        if (!uploadData.id) {
+            throw new Error('Upload failed: ' + (uploadData.error || 'Unknown error'));
         }
         
-        // Mirror for negative frequencies
-        for (let i = fftSize / 2; i < fftSize; i++) {
-            const mirrorIdx = fftSize - i;
-            real[i] = real[mirrorIdx];
-            imag[i] = -imag[mirrorIdx];
+        this.onProgress({ stage: 'processing', progress: 30 });
+        
+        // Check processing status
+        const result = await this.pollLalalStatus(uploadData.id);
+        
+        this.onProgress({ stage: 'downloading', progress: 90 });
+        
+        // Download instrumental
+        const instrumentalBuffer = await this.downloadAndDecodeAudio(result.stem_track);
+        
+        this.onProgress({ stage: 'complete', progress: 100 });
+        
+        return instrumentalBuffer;
+    }
+    
+    async separateWithSpleeter(audioBuffer, options = {}) {
+        /**
+         * Uses self-hosted or third-party Spleeter API
+         * Open source, requires your own server
+         * Example: https://github.com/deezer/spleeter
+         */
+        
+        const endpoint = options.endpoint || 'http://localhost:5000/separate';
+        
+        this.onProgress({ stage: 'converting', progress: 0 });
+        
+        const wavBlob = await this.audioBufferToWavBlob(audioBuffer);
+        const formData = new FormData();
+        formData.append('audio', wavBlob, 'audio.wav');
+        formData.append('stems', options.stems || '2'); // 2, 4, or 5 stems
+        
+        this.onProgress({ stage: 'uploading', progress: 10 });
+        
+        const response = await fetch(endpoint, {
+            method: 'POST',
+            body: formData
+        });
+        
+        if (!response.ok) {
+            throw new Error(`Spleeter API error: ${response.statusText}`);
         }
         
-        this.ifft(real, imag);
-        return real;
+        this.onProgress({ stage: 'processing', progress: 50 });
+        
+        const result = await response.json();
+        
+        this.onProgress({ stage: 'downloading', progress: 90 });
+        
+        // Assuming API returns URLs for separated stems
+        const instrumentalBuffer = await this.downloadAndDecodeAudio(result.instrumental);
+        
+        this.onProgress({ stage: 'complete', progress: 100 });
+        
+        return instrumentalBuffer;
     }
     
-    getSpectralFlux(magnitudes, frameIdx, bin) {
-        if (frameIdx === 0) return 0;
+    async pollPrediction(id, getUrl) {
+        /**
+         * Poll Replicate prediction until complete
+         */
+        let attempts = 0;
+        const maxAttempts = 120; // 2 minutes max
         
-        const current = magnitudes[frameIdx][bin];
-        const previous = magnitudes[frameIdx - 1][bin];
-        
-        // Positive difference indicates onset/transient
-        const diff = Math.max(0, current - previous);
-        
-        // Normalize by average magnitude
-        const avg = (current + previous) / 2;
-        return avg > 0 ? diff / avg : 0;
-    }
-    
-    enhanceStereo(buffer) {
-        // Mid/Side processing to widen instrumental
-        const left = buffer.getChannelData(0);
-        const right = buffer.getChannelData(1);
-        const length = buffer.length;
-        
-        for (let i = 0; i < length; i++) {
-            const mid = (left[i] + right[i]) / 2;
-            const side = (left[i] - right[i]) / 2;
+        while (attempts < maxAttempts) {
+            const response = await fetch(getUrl, {
+                headers: {
+                    'Authorization': `Token ${this.apiKey}`,
+                }
+            });
             
-            // Enhance stereo width slightly
-            const widthFactor = 1.2;
-            left[i] = mid + side * widthFactor;
-            right[i] = mid - side * widthFactor;
+            const prediction = await response.json();
+            
+            if (prediction.status === 'succeeded') {
+                return prediction;
+            }
+            
+            if (prediction.status === 'failed') {
+                throw new Error('Prediction failed: ' + (prediction.error || 'Unknown error'));
+            }
+            
+            // Update progress based on status
+            const progress = 20 + Math.min(attempts * 0.5, 70);
+            this.onProgress({ stage: 'processing', progress });
+            
+            // Wait 1 second before next poll
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            attempts++;
         }
-    }
-    
-    softNormalize(data, length) {
-        // Find RMS instead of peak
-        let rms = 0;
-        for (let i = 0; i < length; i++) {
-            rms += data[i] * data[i];
-        }
-        rms = Math.sqrt(rms / length);
         
-        const targetRMS = 0.15;
-        const gain = targetRMS / (rms + 0.0001);
+        throw new Error('Processing timeout');
+    }
+    
+    async pollLalalStatus(fileId) {
+        /**
+         * Poll LALAL.AI status until complete
+         */
+        let attempts = 0;
+        const maxAttempts = 120;
         
-        // Apply with soft limiting
-        for (let i = 0; i < length; i++) {
-            const scaled = data[i] * gain;
-            // Soft clip using tanh
-            data[i] = Math.tanh(scaled * 0.9) * 1.1;
+        while (attempts < maxAttempts) {
+            const response = await fetch(`https://www.lalal.ai/api/check/?id=${fileId}`, {
+                headers: {
+                    'Authorization': `license ${this.apiKey}`
+                }
+            });
+            
+            const status = await response.json();
+            
+            if (status.state === 'success') {
+                return status.result;
+            }
+            
+            if (status.state === 'error') {
+                throw new Error('Processing failed: ' + (status.error || 'Unknown error'));
+            }
+            
+            const progress = 30 + Math.min(attempts * 0.5, 60);
+            this.onProgress({ stage: 'processing', progress });
+            
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            attempts++;
         }
+        
+        throw new Error('Processing timeout');
     }
     
-    getHannWindow(size) {
-        const window = new Float32Array(size);
-        for (let i = 0; i < size; i++) {
-            window[i] = 0.5 * (1 - Math.cos(2 * Math.PI * i / (size - 1)));
+    async uploadToStorage(blob) {
+        /**
+         * Upload to temporary storage
+         * Replace with your own S3/Cloud Storage implementation
+         */
+        
+        // Option 1: Use a file hosting service
+        const formData = new FormData();
+        formData.append('file', blob);
+        
+        const response = await fetch('https://file.io', {
+            method: 'POST',
+            body: formData
+        });
+        
+        const data = await response.json();
+        
+        if (!data.success) {
+            throw new Error('Upload failed');
         }
-        return window;
+        
+        return data.link;
+        
+        // Option 2: Use your own backend
+        /*
+        const response = await fetch('https://your-backend.com/upload', {
+            method: 'POST',
+            body: formData
+        });
+        const data = await response.json();
+        return data.url;
+        */
     }
     
-    audioBufferToWav(audioBuffer) {
+    async downloadAndDecodeAudio(url) {
+        /**
+         * Download audio file and decode to AudioBuffer
+         */
+        const response = await fetch(url);
+        const arrayBuffer = await response.arrayBuffer();
+        return await this.audioContext.decodeAudioData(arrayBuffer);
+    }
+    
+    async audioBufferToWavBlob(audioBuffer) {
+        /**
+         * Convert AudioBuffer to WAV Blob
+         */
         const numChannels = audioBuffer.numberOfChannels;
         const sampleRate = audioBuffer.sampleRate;
         const format = 1; // PCM
@@ -262,20 +294,23 @@ export class VocalSeparator {
         const bytesPerSample = bitDepth / 8;
         const blockAlign = numChannels * bytesPerSample;
         
-        const data = [];
+        // Interleave channels
+        const interleaved = new Int16Array(audioBuffer.length * numChannels);
+        
         for (let i = 0; i < audioBuffer.length; i++) {
             for (let channel = 0; channel < numChannels; channel++) {
                 const sample = audioBuffer.getChannelData(channel)[i];
-                const intSample = Math.max(-1, Math.min(1, sample));
-                const int16 = intSample < 0 ? intSample * 0x8000 : intSample * 0x7FFF;
-                data.push(int16);
+                const clamped = Math.max(-1, Math.min(1, sample));
+                const int16 = clamped < 0 ? clamped * 0x8000 : clamped * 0x7FFF;
+                interleaved[i * numChannels + channel] = int16;
             }
         }
         
-        const dataSize = data.length * bytesPerSample;
+        const dataSize = interleaved.length * bytesPerSample;
         const buffer = new ArrayBuffer(44 + dataSize);
         const view = new DataView(buffer);
         
+        // Write WAV header
         const writeString = (offset, string) => {
             for (let i = 0; i < string.length; i++) {
                 view.setUint8(offset + i, string.charCodeAt(i));
@@ -296,64 +331,46 @@ export class VocalSeparator {
         writeString(36, 'data');
         view.setUint32(40, dataSize, true);
         
-        let offset = 44;
-        for (let i = 0; i < data.length; i++) {
-            view.setInt16(offset, data[i], true);
-            offset += 2;
+        // Write audio data
+        const samples = new DataView(buffer, 44);
+        for (let i = 0; i < interleaved.length; i++) {
+            samples.setInt16(i * 2, interleaved[i], true);
         }
         
-        return buffer;
-    }
-    
-    fft(real, imag) {
-        const n = real.length;
-        if (n <= 1) return;
-        
-        let j = 0;
-        for (let i = 0; i < n; i++) {
-            if (i < j) {
-                [real[i], real[j]] = [real[j], real[i]];
-                [imag[i], imag[j]] = [imag[j], imag[i]];
-            }
-            let m = n >> 1;
-            while (m >= 1 && j >= m) {
-                j -= m;
-                m >>= 1;
-            }
-            j += m;
-        }
-        
-        for (let size = 2; size <= n; size *= 2) {
-            const halfsize = size / 2;
-            const tablestep = n / size;
-            
-            for (let i = 0; i < n; i += size) {
-                for (let j = i, k = 0; j < i + halfsize; j++, k += tablestep) {
-                    const angle = 2 * Math.PI * k / n;
-                    const tpre = real[j + halfsize] * Math.cos(angle) + imag[j + halfsize] * Math.sin(angle);
-                    const tpim = -real[j + halfsize] * Math.sin(angle) + imag[j + halfsize] * Math.cos(angle);
-                    
-                    real[j + halfsize] = real[j] - tpre;
-                    imag[j + halfsize] = imag[j] - tpim;
-                    real[j] += tpre;
-                    imag[j] += tpim;
-                }
-            }
-        }
-    }
-    
-    ifft(real, imag) {
-        const n = real.length;
-        
-        for (let i = 0; i < n; i++) {
-            imag[i] = -imag[i];
-        }
-        
-        this.fft(real, imag);
-        
-        for (let i = 0; i < n; i++) {
-            real[i] /= n;
-            imag[i] = -imag[i] / n;
-        }
+        return new Blob([buffer], { type: 'audio/wav' });
     }
 }
+
+// Usage example:
+/*
+const audioContext = new AudioContext();
+const separator = new VocalSeparator(audioContext, {
+    apiKey: 'your-api-key',
+    onProgress: ({ stage, progress }) => {
+        console.log(`${stage}: ${progress}%`);
+    }
+});
+
+// Load audio file
+const response = await fetch('song.mp3');
+const arrayBuffer = await response.arrayBuffer();
+const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+
+// Separate with Replicate (Demucs)
+const instrumental = await separator.separate(audioBuffer, {
+    service: 'replicate',
+    stem: 'vocals'
+});
+
+// Or use LALAL.AI
+const instrumental = await separator.separate(audioBuffer, {
+    service: 'lalalai',
+    filter: '2' // aggressive filtering
+});
+
+// Play result
+const source = audioContext.createBufferSource();
+source.buffer = instrumental;
+source.connect(audioContext.destination);
+source.start();
+*/
